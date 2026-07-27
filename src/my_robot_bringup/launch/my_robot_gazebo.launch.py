@@ -2,7 +2,8 @@ import os
 import xacro
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
@@ -23,11 +24,68 @@ def generate_launch_description():
 
     scripts_dir = os.path.join(pkg_bringup, 'scripts')
 
-    # Process xacro using the Python API – avoids YAML-escaping issues entirely
+    # Process xacro with absolute path to controllers YAML
     robot_description_xml = xacro.process_file(
         urdf_path,
         mappings={'controllers_config': controllers_config}
     ).toxml()
+
+    # ── Spawn robot model node ──────────────────────────────────────────────
+    spawn_robot = Node(
+        package='ros_gz_sim',
+        executable='create',
+        arguments=['-topic', 'robot_description'],
+        output='screen'
+    )
+
+    # ── Controller Spawners (Deferred until after model is spawned) ─────────
+    joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'joint_state_broadcaster',
+            '--controller-manager', '/controller_manager',
+            '--controller-manager-timeout', '60',
+        ],
+        parameters=[{'use_sim_time': True}],
+        output='screen'
+    )
+
+    diff_drive_controller_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'diff_drive_controller',
+            '--controller-manager', '/controller_manager',
+            '--controller-manager-timeout', '60',
+        ],
+        parameters=[{'use_sim_time': True}],
+        output='screen'
+    )
+
+    imu_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'imu_broadcaster',
+            '--controller-manager', '/controller_manager',
+            '--controller-manager-timeout', '60',
+        ],
+        parameters=[{'use_sim_time': True}],
+        output='screen'
+    )
+
+    # Trigger controller activation ONLY after the robot entity creation process exits
+    delayed_controller_spawners = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_robot,
+            on_exit=[
+                joint_state_broadcaster_spawner,
+                diff_drive_controller_spawner,
+                imu_broadcaster_spawner,
+            ],
+        )
+    )
 
     return LaunchDescription([
 
@@ -48,46 +106,16 @@ def generate_launch_description():
         ),
 
         # ── Spawn robot model ─────────────────────────────────────────────────
-        Node(
-            package='ros_gz_sim',
-            executable='create',
-            arguments=['-topic', 'robot_description'],
-        ),
+        spawn_robot,
+
+        # ── Controller spawners (event handled) ───────────────────────────────
+        delayed_controller_spawners,
 
         # ── Gazebo ↔ ROS bridge ───────────────────────────────────────────────
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
-            parameters=[{'config_file': gazebo_config_path}],
-        ),
-
-        # ── ros2_control: spawn controllers ──────────────────────────────────
-        Node(
-            package='controller_manager',
-            executable='spawner',
-            arguments=[
-                'joint_state_broadcaster',
-                '--controller-manager', '/controller_manager',
-                '--controller-manager-timeout', '60',
-            ],
-        ),
-        Node(
-            package='controller_manager',
-            executable='spawner',
-            arguments=[
-                'diff_drive_controller',
-                '--controller-manager', '/controller_manager',
-                '--controller-manager-timeout', '60',
-            ],
-        ),
-        Node(
-            package='controller_manager',
-            executable='spawner',
-            arguments=[
-                'imu_broadcaster',
-                '--controller-manager', '/controller_manager',
-                '--controller-manager-timeout', '60',
-            ],
+            parameters=[{'config_file': gazebo_config_path, 'use_sim_time': True}],
         ),
 
         # ── EKF: fused estimate (wheels + IMU) ────────────────────────────────
@@ -105,15 +133,16 @@ def generate_launch_description():
             executable='rviz2',
             output='screen',
             arguments=['-d', rviz_config_path],
+            parameters=[{'use_sim_time': True}],
         ),
 
-        # ── Odometry -> Path converter (trajectory lines in RViz) ────────────
+        # ── Odometry -> Path converter ────────────────────────────────────────
         ExecuteProcess(
             cmd=['python3', os.path.join(scripts_dir, 'odom_to_path.py')],
             output='screen',
         ),
 
-        # -- Trajectory recorder: saves PNG plot on shutdown -------------------
+        # ── Trajectory recorder ───────────────────────────────────────────────
         ExecuteProcess(
             cmd=['python3', os.path.join(scripts_dir, 'plot_trajectories.py')],
             output='screen',

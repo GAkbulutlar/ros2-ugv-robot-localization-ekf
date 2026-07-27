@@ -2,8 +2,8 @@
 """
 Square path controller for a mobile robot in ROS 2, publishing TwistStamped.
 
-- Uses /odom to measure distance and heading.
-- Publishes TwistStamped on /cmd_vel (or your chosen topic).
+- Uses /diff_drive_controller/odom to measure distance and heading.
+- Publishes TwistStamped on /diff_drive_controller/cmd_vel.
 """
 
 import math
@@ -40,8 +40,9 @@ class SquareMover(Node):
         self.set_parameters([rclpy.parameter.Parameter(
             'use_sim_time', rclpy.parameter.Parameter.Type.BOOL, True)])
 
-        # Parameters
-        self.side_length = 2.0        # meters
+        # Parameters (can be overridden via ROS 2 parameter: side_length)
+        self.declare_parameter('side_length', 0.5)
+        self.side_length = self.get_parameter('side_length').get_parameter_value().double_value
         self.linear_speed = 0.2       # m/s
 
         # Coarse turn
@@ -69,11 +70,10 @@ class SquareMover(Node):
         self.sides_completed = 0
         self.total_sides = 4
 
-        # Publisher: TwistStamped → diff_drive_controller (Jazzy uses TwistStamped only)
+        # Publisher: TwistStamped -> diff_drive_controller
         self.cmd_pub = self.create_publisher(TwistStamped, '/diff_drive_controller/cmd_vel', 10)
 
-        # Odometry subscriber — raw wheel odom for reliable control
-        # (EKF heading can be biased by IMU noise during startup)
+        # Subscriber: raw wheel odom matching active topics
         self.odom_sub = self.create_subscription(
             Odometry,
             '/diff_drive_controller/odom',
@@ -84,7 +84,7 @@ class SquareMover(Node):
         # Control loop timer: 50 Hz
         self.timer = self.create_timer(0.02, self.control_loop)
 
-        self.get_logger().info("SquareMover node started. Waiting for /odom...")
+        self.get_logger().info("SquareMover node started. Waiting for /diff_drive_controller/odom...")
 
     def odom_callback(self, msg: Odometry):
         # Update current pose
@@ -201,8 +201,7 @@ class SquareMover(Node):
         elif self.state == 'STOP':
             twist.linear.x = 0.0
             twist.angular.z = 0.0
-            # Optional: you could shut down here if you want the node to exit
-            # self.get_logger().info("Finished square. Not sending more commands.")
+
         else:
             # Unknown state, make sure we don't move
             twist.linear.x = 0.0
@@ -219,11 +218,13 @@ def main(args=None):
     except KeyboardInterrupt:
         node.get_logger().info('Keyboard interrupt, shutting down.')
     finally:
-        # Final stop command
+        # Stop the robot and clean up safely BEFORE calling rclpy.shutdown()
         stop_twist = Twist()
         node.publish_cmd(stop_twist)
         node.destroy_node()
-        rclpy.shutdown()
+        
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

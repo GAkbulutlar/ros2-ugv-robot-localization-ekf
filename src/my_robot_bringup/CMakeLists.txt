@@ -13,4 +13,12 @@ install(DIRECTORY launch config worlds scripts
   DESTINATION share/${PROJECT_NAME}/
 )
 
+install(PROGRAMS
+  scripts/square_move.py
+  scripts/imu_dead_reckoning.py
+  scripts/odom_to_path.py
+  scripts/plot_trajectories.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
