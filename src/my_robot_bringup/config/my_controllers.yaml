@@ -9,14 +9,6 @@ controller_manager:
     diff_drive_controller:
       type: diff_drive_controller/DiffDriveController
 
-    imu_broadcaster:
-      type: imu_sensor_broadcaster/IMUSensorBroadcaster
-
-imu_broadcaster:
-  ros__parameters:
-    sensor_name: imu_sensor
-    frame_id: imu_link
-
 diff_drive_controller:
   ros__parameters:
     use_stamped_vel: true        # Required when publishing geometry_msgs/msg/TwistStamped
@@ -29,9 +21,6 @@ diff_drive_controller:
       - base_rear_right_wheel_joint
 
     # Actual wheel separation is 0.45 m.
-    # Using 0.80 m introduces a ~78% heading error per turn so that
-    # raw wheel odometry clearly diverges from ground truth and
-    # the EKF IMU correction is visually unmistakeable.
     wheel_separation: 0.45
     wheel_radius: 0.1
 

@@ -28,6 +28,11 @@
         <!--<arg name="gz_args" value="empty.sdf -r" />-->
     </include>
 
+    <node pkg="controller_manager" exec="spawner"
+      args="imu_sensor_broadcaster
+            --controller-manager /controller_manager
+            --controller-manager-timeout 60" />
+
     <node pkg="ros_gz_sim" exec="create" args="-topic robot_description" />
 
     <node pkg="ros_gz_bridge" exec="parameter_bridge">

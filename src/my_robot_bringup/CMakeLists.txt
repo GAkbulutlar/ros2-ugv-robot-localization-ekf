@@ -15,6 +15,8 @@ install(DIRECTORY launch config worlds scripts
 
 install(PROGRAMS
   scripts/square_move.py
+  scripts/circle_move.py
+  scripts/twist_relay.py
   scripts/imu_dead_reckoning.py
   scripts/odom_to_path.py
   scripts/plot_trajectories.py

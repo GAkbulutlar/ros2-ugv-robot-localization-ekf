@@ -63,18 +63,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    imu_broadcaster_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=[
-            'imu_broadcaster',
-            '--controller-manager', '/controller_manager',
-            '--controller-manager-timeout', '60',
-        ],
-        parameters=[{'use_sim_time': True}],
-        output='screen'
-    )
-
     # Trigger controller activation ONLY after the robot entity creation process exits
     delayed_controller_spawners = RegisterEventHandler(
         event_handler=OnProcessExit(
@@ -82,7 +70,6 @@ def generate_launch_description():
             on_exit=[
                 joint_state_broadcaster_spawner,
                 diff_drive_controller_spawner,
-                imu_broadcaster_spawner,
             ],
         )
     )

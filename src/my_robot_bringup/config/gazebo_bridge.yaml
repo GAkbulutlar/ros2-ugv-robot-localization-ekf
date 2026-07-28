@@ -39,3 +39,12 @@
   ros_type_name: "geometry_msgs/msg/Pose"
   gz_type_name: "gz.msgs.Pose"
   direction: GZ_TO_ROS
+
+# Raw IMU from Gazebo sensor — bridged to /imu/data (separate from imu_broadcaster)
+# imu_sensor_broadcaster state interfaces output zeros due to gz_ros2_control bug,
+# so we bypass it and use the Gazebo topic directly for EKF.
+- ros_topic_name: "/imu/data"
+  gz_topic_name: "/imu"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS
