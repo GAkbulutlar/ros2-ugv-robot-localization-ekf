@@ -6,7 +6,11 @@ A ROS 2 workspace featuring a custom differential-drive robot built from scratch
 
 ## Demo Simulation
 
-<video src="https://github.com/user-attachments/assets/cc9d1246-57ad-4be1-9f14-5bb3a4358e92" controls="controls" muted="muted" style="max-width: 100%;">
+![Trajectory Comparison](TrajectoryComparison.png)
+
+### Trajectory Comparison Video
+
+<video src="Video/TrajectoryComparisonVideo.mp4" controls="controls" muted="muted" style="max-width: 100%;">
   Your browser does not support the video tag.
 </video>
 
