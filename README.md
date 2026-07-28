@@ -1,6 +1,10 @@
-# ROS 2 Mobile Robot — Gazebo Simulation with Camera & LiDAR
+# ROS 2 Differential Drive UGV State Estimation Simulation
 
 A ROS 2 workspace featuring a custom differential-drive robot built from scratch, equipped with a **camera** and a **2D LiDAR**, and simulated inside a **Gazebo Harmonic** world.
+
+**ROS 2 Differential Drive UGV State Estimation Simulation** is a ROS 2 simulation package designed for evaluating multi-sensor state estimation on ground mobile robots.
+
+Integrating **Gazebo** physics with **`ros2_control` (`diff_drive_controller`)** and the **`robot_localization` Extended Kalman Filter (EKF)**, this framework fuses **IMU heading/angular rates** with **wheel odometry linear velocity**. It includes automated trajectory logging and analysis tools to benchmark fused state estimates against ground truth paths, helping developers easily diagnose coordinate frame misalignments, sensor biases, and covariance tuning issues.
 
 ---
 
